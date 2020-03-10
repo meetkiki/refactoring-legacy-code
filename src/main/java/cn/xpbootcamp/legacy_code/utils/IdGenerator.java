@@ -6,4 +6,8 @@ public class IdGenerator {
     public static String generateTransactionId() {
         return UUID.randomUUID().toString();
     }
+
+    public static Long generateOrderId() {
+        return System.currentTimeMillis();
+    }
 }

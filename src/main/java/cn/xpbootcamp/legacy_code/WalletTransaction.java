@@ -1,47 +1,39 @@
 package cn.xpbootcamp.legacy_code;
 
-import cn.xpbootcamp.legacy_code.enums.STATUS;
+import cn.xpbootcamp.legacy_code.entity.Order;
+import cn.xpbootcamp.legacy_code.entity.Wallet;
+import cn.xpbootcamp.legacy_code.enums.WalletStatus;
 import cn.xpbootcamp.legacy_code.service.WalletService;
 import cn.xpbootcamp.legacy_code.service.WalletServiceImpl;
-import cn.xpbootcamp.legacy_code.utils.IdGenerator;
 import cn.xpbootcamp.legacy_code.utils.RedisDistributedLock;
 
 import javax.transaction.InvalidTransactionException;
 
+import static cn.xpbootcamp.legacy_code.enums.WalletStatus.EXECUTED;
+
 public class WalletTransaction {
     private String id;
-    private Long buyerId;
-    private Long sellerId;
-    private Long productId;
-    private String orderId;
-    private Long createdTimestamp;
-    private Double amount;
-    private STATUS status;
+    private Order order;
+    private WalletStatus status;
     private String walletTransactionId;
 
 
-    public WalletTransaction(String preAssignedId, Long buyerId, Long sellerId, Long productId, String orderId) {
-        if (preAssignedId != null && !preAssignedId.isEmpty()) {
-            this.id = preAssignedId;
-        } else {
-            this.id = IdGenerator.generateTransactionId();
-        }
+    public WalletTransaction(Wallet wallet) {
+        this.id = wallet.getPreAssignedId();
+        this.order = wallet.getOrder();
+        this.status = wallet.getStatus();
+        this.stitchingId();
+    }
+
+    private void stitchingId() {
         if (!this.id.startsWith("t_")) {
-            this.id = "t_" + preAssignedId;
+            this.id = "t_" + this.id;
         }
-        this.buyerId = buyerId;
-        this.sellerId = sellerId;
-        this.productId = productId;
-        this.orderId = orderId;
-        this.status = STATUS.TO_BE_EXECUTED;
-        this.createdTimestamp = System.currentTimeMillis();
     }
 
     public boolean execute() throws InvalidTransactionException {
-        if (buyerId == null || (sellerId == null || amount < 0.0)) {
-            throw new InvalidTransactionException("This is an invalid transaction");
-        }
-        if (status == STATUS.EXECUTED) return true;
+        this.order.verifyParameter();
+        if (status == EXECUTED) return true;
         boolean isLocked = false;
         try {
             isLocked = RedisDistributedLock.getSingletonInstance().lock(id);
@@ -50,21 +42,22 @@ public class WalletTransaction {
             if (!isLocked) {
                 return false;
             }
-            if (status == STATUS.EXECUTED) return true; // double check
+            if (status == EXECUTED) return true; // double check
             long executionInvokedTimestamp = System.currentTimeMillis();
             // 交易超过20天
+            Long createdTimestamp = order.getCreatedTimestamp();
             if (executionInvokedTimestamp - createdTimestamp > 1728000000) {
-                this.status = STATUS.EXPIRED;
+                this.status = WalletStatus.EXPIRED;
                 return false;
             }
             WalletService walletService = new WalletServiceImpl();
-            String walletTransactionId = walletService.moveMoney(id, buyerId, sellerId, amount);
+            String walletTransactionId = walletService.moveMoney(id, order);
             if (walletTransactionId != null) {
                 this.walletTransactionId = walletTransactionId;
-                this.status = STATUS.EXECUTED;
+                this.status = EXECUTED;
                 return true;
             } else {
-                this.status = STATUS.FAILED;
+                this.status = WalletStatus.FAILED;
                 return false;
             }
         } finally {
@@ -73,5 +66,6 @@ public class WalletTransaction {
             }
         }
     }
+
 
 }
