@@ -71,7 +71,7 @@ public class Order {
 
     public void verifyParameter() throws InvalidTransactionException {
         if (buyer.unReasonableId() || (seller.unReasonableId()) || product.unReasonableAmount()) {
-            throw new InvalidTransactionException("This is an invalid transaction");
+            throw new InvalidTransactionException("This is an invalid order");
         }
     }
 
