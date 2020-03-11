@@ -11,7 +11,7 @@ public class User {
         this.balance = balance;
     }
 
-    public double getBalance() {
+    public Double getBalance() {
         return balance;
     }
 

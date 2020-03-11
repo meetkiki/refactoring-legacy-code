@@ -4,7 +4,9 @@ import cn.xpbootcamp.legacy_code.entity.Order;
 import cn.xpbootcamp.legacy_code.entity.Product;
 import cn.xpbootcamp.legacy_code.entity.User;
 import cn.xpbootcamp.legacy_code.entity.Wallet;
+import cn.xpbootcamp.legacy_code.enums.WalletStatus;
 import cn.xpbootcamp.legacy_code.service.WalletService;
+import cn.xpbootcamp.legacy_code.service.WalletServiceImpl;
 import cn.xpbootcamp.legacy_code.utils.RedisDistributedLock;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -27,7 +29,7 @@ public class WalletTransactionTest {
     @BeforeAll
     public static void before(){
         distributedLock = Mockito.mock(RedisDistributedLock.class);
-        walletService = Mockito.mock(WalletService.class);
+        walletService = new WalletServiceImpl();
     }
 
 
@@ -95,6 +97,44 @@ public class WalletTransactionTest {
     }
 
 
+    @Test
+    void shouldThrowExceptionWhenBuyerInsufficientBalance() {
+        User buyer = new User(1L, 10.0);
+        User seller = new User(2L, 0.0);
+        Product product = new Product(1L, 100.0);
+        Order order = new Order(buyer, seller, product);
 
+        Wallet wallet = new Wallet(order);
+
+        WalletTransaction transaction = new WalletTransaction(distributedLock,walletService);
+        Mockito.when(distributedLock.lock(wallet.getPreAssignedId())).thenReturn(true);
+
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> transaction.execute(wallet));
+
+        assertEquals("buyer Not enough money to buy the product", exception.getMessage());
+    }
+
+
+    @Test
+    void shouldReturnTrueWhenBuyerHasEnoughMoney() throws InvalidTransactionException {
+        User buyer = new User(1L, 200.0);
+        User seller = new User(2L, 0.0);
+        Product product = new Product(1L, 100.0);
+        Order order = new Order(buyer, seller, product);
+
+        Wallet wallet = new Wallet(order);
+
+        WalletTransaction transaction = new WalletTransaction(distributedLock,walletService);
+        Mockito.when(distributedLock.lock(wallet.getPreAssignedId())).thenReturn(true);
+
+        boolean result = transaction.execute(wallet);
+
+        assertTrue(result);
+        assertEquals(product.getAmount(),seller.getBalance());
+        assertEquals(wallet.getStatus(), WalletStatus.EXECUTED);
+
+
+    }
 
 }

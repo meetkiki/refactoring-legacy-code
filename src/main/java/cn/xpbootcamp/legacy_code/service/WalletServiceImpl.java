@@ -20,8 +20,7 @@ public class WalletServiceImpl implements WalletService {
             seller.setBalance(seller.getBalance() + amount);
             buyer.setBalance(buyer.getBalance() - amount);
             return UUID.randomUUID().toString() + id;
-        } else {
-            return null;
         }
+        throw new IllegalArgumentException("buyer Not enough money to buy the product");
     }
 }

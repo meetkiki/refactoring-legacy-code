@@ -50,13 +50,11 @@ public class WalletTransaction {
             }
 
             String walletTransactionId = walletService.moveMoney(id, order);
-            if (walletTransactionId != null) {
-                wallet.executed(walletTransactionId);
-                return true;
-            } else {
-                wallet.failed();
-                return false;
-            }
+            wallet.executed(walletTransactionId);
+            return true;
+        } catch (IllegalArgumentException exception) {
+            wallet.failed();
+            throw exception;
         } finally {
             if (isLocked) {
                 distributedLock.unlock(id);
