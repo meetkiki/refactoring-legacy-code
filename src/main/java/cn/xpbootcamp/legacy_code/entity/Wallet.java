@@ -17,6 +17,8 @@ public class Wallet {
     private Order order;
     private WalletStatus status;
 
+    private String walletTransactionId;
+
 
     public Wallet(Order order) {
         this.order = order;
@@ -26,7 +28,15 @@ public class Wallet {
         if (isEmptyId()) {
             this.preAssignedId = IdGenerator.generateTransactionId();
         }
-        return preAssignedId;
+        return this.stitchingId();
+    }
+
+
+    private String stitchingId() {
+        if (!this.preAssignedId.startsWith("t_")) {
+            this.preAssignedId = "t_" + this.preAssignedId;
+        }
+        return this.preAssignedId;
     }
 
     private boolean isEmptyId() {
@@ -48,7 +58,8 @@ public class Wallet {
     }
 
 
-    public Wallet executed(){
+    public Wallet executed(String walletTransactionId){
+        this.walletTransactionId = walletTransactionId;
         this.status = EXECUTED;
         return this;
     }
@@ -62,5 +73,13 @@ public class Wallet {
             status = TO_BE_EXECUTED;
         }
         return status;
+    }
+
+    public String getWalletTransactionId() {
+        return walletTransactionId;
+    }
+
+    public void setWalletTransactionId(String walletTransactionId) {
+        this.walletTransactionId = walletTransactionId;
     }
 }

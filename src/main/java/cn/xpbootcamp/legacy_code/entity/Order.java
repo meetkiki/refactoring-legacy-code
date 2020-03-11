@@ -3,6 +3,8 @@ package cn.xpbootcamp.legacy_code.entity;
 import cn.xpbootcamp.legacy_code.utils.IdGenerator;
 
 import javax.transaction.InvalidTransactionException;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 public class Order {
 
@@ -14,65 +16,49 @@ public class Order {
 
     private Double amount;
 
-    private Long createdTimestamp;
+    private LocalDateTime createdTimestamp;
 
     public Order(User buyer, User seller, Product product) {
         this.id = IdGenerator.generateOrderId();
         this.buyer = buyer;
         this.seller = seller;
         this.product = product;
+
         this.amount = product.getAmount();
-        this.createdTimestamp = System.currentTimeMillis();
+        this.createdTimestamp = LocalDateTime.now();
     }
 
     public Long getId() {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public Double getAmount() {
         return amount;
-    }
-
-    public void setAmount(Double amount) {
-        this.amount = amount;
-    }
-
-    public Long getCreatedTimestamp() {
-        return createdTimestamp;
     }
 
     public User getBuyer() {
         return buyer;
     }
 
-    public void setBuyer(User buyer) {
-        this.buyer = buyer;
-    }
-
     public User getSeller() {
         return seller;
     }
 
-    public void setSeller(User seller) {
-        this.seller = seller;
-    }
 
-    public Product getProduct() {
-        return product;
-    }
-
-    public void setProduct(Product product) {
-        this.product = product;
+    public void setCreatedTimestamp(LocalDateTime createdTimestamp) {
+        this.createdTimestamp = createdTimestamp;
     }
 
     public void verifyParameter() throws InvalidTransactionException {
         if (buyer.unReasonableId() || (seller.unReasonableId()) || product.unReasonableAmount()) {
             throw new InvalidTransactionException("This is an invalid order");
         }
+    }
+
+
+    public boolean hasDaysPastDue(int day){
+        long daysDiff = ChronoUnit.DAYS.between(createdTimestamp, LocalDateTime.now());
+        return daysDiff > 20;
     }
 
 
