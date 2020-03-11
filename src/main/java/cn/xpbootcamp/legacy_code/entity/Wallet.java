@@ -5,6 +5,9 @@ import cn.xpbootcamp.legacy_code.utils.IdGenerator;
 
 import java.util.Objects;
 
+import static cn.xpbootcamp.legacy_code.enums.WalletStatus.EXECUTED;
+import static cn.xpbootcamp.legacy_code.enums.WalletStatus.EXPIRED;
+import static cn.xpbootcamp.legacy_code.enums.WalletStatus.FAILED;
 import static cn.xpbootcamp.legacy_code.enums.WalletStatus.TO_BE_EXECUTED;
 
 public class Wallet {
@@ -30,12 +33,28 @@ public class Wallet {
         return preAssignedId == null || preAssignedId.isEmpty();
     }
 
-    public Order getOrder() {
-        return order;
+    public boolean isExecuted(){
+        return status == EXECUTED;
     }
 
-    public Long getCreatedTimestamp() {
-        return order.getCreatedTimestamp();
+    public Wallet expired(){
+        this.status = EXPIRED;
+        return this;
+    }
+
+    public Wallet failed(){
+        this.status = FAILED;
+        return this;
+    }
+
+
+    public Wallet executed(){
+        this.status = EXECUTED;
+        return this;
+    }
+
+    public Order getOrder() {
+        return order;
     }
 
     public WalletStatus getStatus() {

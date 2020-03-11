@@ -13,15 +13,13 @@ import static cn.xpbootcamp.legacy_code.enums.WalletStatus.EXECUTED;
 
 public class WalletTransaction {
     private String id;
-    private Order order;
-    private WalletStatus status;
+    private Wallet wallet;
     private String walletTransactionId;
 
 
     public WalletTransaction(Wallet wallet) {
         this.id = wallet.getPreAssignedId();
-        this.order = wallet.getOrder();
-        this.status = wallet.getStatus();
+        this.wallet = wallet;
         this.stitchingId();
     }
 
@@ -32,8 +30,11 @@ public class WalletTransaction {
     }
 
     public boolean execute() throws InvalidTransactionException {
-        this.order.verifyParameter();
-        if (status == EXECUTED) return true;
+        if (hasExecuted()) return true;
+
+        Order order = this.wallet.getOrder();
+        order.verifyParameter();
+
         boolean isLocked = false;
         try {
             isLocked = RedisDistributedLock.getSingletonInstance().lock(id);
@@ -42,22 +43,22 @@ public class WalletTransaction {
             if (!isLocked) {
                 return false;
             }
-            if (status == EXECUTED) return true; // double check
+            if (hasExecuted()) return true; // double check
             long executionInvokedTimestamp = System.currentTimeMillis();
             // 交易超过20天
             Long createdTimestamp = order.getCreatedTimestamp();
             if (executionInvokedTimestamp - createdTimestamp > 1728000000) {
-                this.status = WalletStatus.EXPIRED;
+                this.wallet.expired();
                 return false;
             }
             WalletService walletService = new WalletServiceImpl();
             String walletTransactionId = walletService.moveMoney(id, order);
             if (walletTransactionId != null) {
                 this.walletTransactionId = walletTransactionId;
-                this.status = EXECUTED;
+                this.wallet.executed();
                 return true;
             } else {
-                this.status = WalletStatus.FAILED;
+                this.wallet.failed();
                 return false;
             }
         } finally {
@@ -65,6 +66,15 @@ public class WalletTransaction {
                 RedisDistributedLock.getSingletonInstance().unlock(id);
             }
         }
+    }
+
+
+
+    private boolean hasExecuted() {
+        if (this.wallet.isExecuted()) {
+            return true;
+        }
+        return false;
     }
 
 

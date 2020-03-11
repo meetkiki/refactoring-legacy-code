@@ -10,6 +10,7 @@ import javax.transaction.InvalidTransactionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class WalletTransactionTest {
 
@@ -24,6 +25,20 @@ public class WalletTransactionTest {
 
         InvalidTransactionException exception = assertThrows(InvalidTransactionException.class, () -> transaction.execute());
         assertEquals("This is an invalid order", exception.getMessage());
+    }
+
+
+    @Test
+    void shouldReturnTrueWhenExecuted() throws InvalidTransactionException {
+        User buyer = new User(1L, 100.0);
+        User seller = new User(2L, 0.0);
+        Product product = new Product(1L, 1.0);
+        Order order = new Order(buyer, seller, product);
+        Wallet wallet = new Wallet(order);
+        wallet.executed();
+        WalletTransaction transaction = new WalletTransaction(wallet);
+
+        assertTrue(transaction.execute());
     }
 
 
